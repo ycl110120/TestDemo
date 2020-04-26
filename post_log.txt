@@ -1,0 +1,83 @@
+
+MIME 参考手册 postfile 类型 MIME TYPE
+
+
+
+
+
+
+    private void postTextData(JSONObject body) {
+        try {
+            URL url = new URL(Constants.URL_CHAT);
+            HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+            conn.setConnectTimeout(5000);
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            DataOutputStream os = new DataOutputStream(conn.getOutputStream());
+            String content = String.valueOf(body);
+//            os.writeBytes(content);
+            os.write(content.getBytes());
+            os.flush();
+            os.close();
+            LogUtil.e("ResponseCode:" + conn.getResponseCode());
+            if (conn.getResponseCode() == HttpURLConnection.HTTP_OK) {
+                InputStreamReader in = new InputStreamReader(conn.getInputStream());
+                BufferedReader bf = new BufferedReader(in);
+                String recieveData = null;
+                String result = "";
+                while ((recieveData = bf.readLine()) != null) {
+                    result += recieveData + "\n";
+                    LogUtil.e("recieveData:" + result);
+                    JSONObject o = new JSONObject(result.replaceAll("[\\[\\]]", ""));
+                    LogUtil.e("text:" + o.getString("text"));
+
+                    Message message = new Message();
+                    message.what = 1;
+                    Bundle bundle = new Bundle();
+                    bundle.putString("text", o.getString("text"));
+                    message.setData(bundle);
+                    // 发送消息到消息队列中
+                    handler.sendMessage(message);
+                }
+                in.close();
+                conn.disconnect();
+            }
+        } catch (JSONException e) {
+            e.printStackTrace();
+            LogUtil.e("JSONException:" + e.toString());
+        } catch (IOException io) {
+            io.printStackTrace();
+            LogUtil.e("IOException:" + io.toString());
+        }
+    }
+
+
+Message message = new Message();
+                            message.what = 1;
+                            Bundle bundle = new Bundle();
+                            bundle.putString("text", o.getString("text"));
+                            message.setData(bundle);
+                            // 发送消息到消息队列中
+                            handler.sendMessage(message);
+
+
+
+
+
+    private Handler handler = new Handler() {
+        public void handleMessage(android.os.Message msg) {
+            switch (msg.what) {
+                case 1:
+                    MyMessage mMessgaeText = getBaseReceiveMessage(MsgType.TEXT);
+                    TextMsgBody mTextMsgBody = new TextMsgBody();
+                    mTextMsgBody.setMessage(msg.getData().getString("text"));
+                    mMessgaeText.setBody(mTextMsgBody);
+                    mAdapter.addData(mMessgaeText);
+                    break;
+            }
+        }
+
+        ;
+    };
